@@ -10,7 +10,7 @@
 #include "Somfy.h"
 #include "Web.h"
 #include "WResp.h"
-#include "Network.h"
+#include "RTSNetwork.h"
 
 
 
@@ -20,7 +20,7 @@ extern SocketEmitter sockEmit;
 extern SomfyShadeController somfy;
 extern rebootDelay_t rebootDelay;
 extern Web webServer;
-extern Network net;
+extern RTSNetwork net;
 
 
 
