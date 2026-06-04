@@ -168,9 +168,9 @@ bool ConfigSettings::begin() {
 //    case esp_chip_model_t::CHIP_ESP32C2:
 //      strcpy(this->chipModel, "c2");
 //      break;
-//    case esp_chip_model_t::CHIP_ESP32C6:
-//      strcpy(this->chipModel, "c6");
-//      break;
+    case esp_chip_model_t::CHIP_ESP32C6:
+      strcpy(this->chipModel, "c6");
+      break;
     case esp_chip_model_t::CHIP_ESP32H2:
       strcpy(this->chipModel, "h2");
       break;
