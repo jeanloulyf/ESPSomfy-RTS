@@ -37,7 +37,12 @@ void setup() {
   net.setup();  
   somfy.begin();
   //git.checkForUpdate();
-  esp_task_wdt_init(7, true); //enable panic so ESP32 restarts
+  esp_task_wdt_config_t wdt_config = {
+    .timeout_ms = 7000,
+    .idle_core_mask = (1 << portNUM_PROCESSORS) - 1, // Bitmask of all cores
+    .trigger_panic = true
+  };
+  esp_task_wdt_init(&wdt_config); //enable panic so ESP32 restarts
   esp_task_wdt_add(NULL); //add current thread to WDT watch
 
 }
