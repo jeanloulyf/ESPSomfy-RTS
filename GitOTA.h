@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <time.h>
+#include <esp_chip_info.h>
 #include "ConfigSettings.h"
 #include "WResp.h"
 

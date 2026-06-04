@@ -3,7 +3,7 @@
 #include <ESPmDNS.h>
 #include <esp_task_wdt.h>
 #include "ConfigSettings.h"
-#include "Network.h"
+#include "RTSNetwork.h"
 #include "Web.h"
 #include "Sockets.h"
 #include "Utils.h"
@@ -15,7 +15,7 @@ extern Web webServer;
 extern SocketEmitter sockEmit;
 extern MQTTClass mqtt;
 extern rebootDelay_t rebootDelay;
-extern Network net;
+extern RTSNetwork net;
 extern SomfyShadeController somfy;
 
 static unsigned long _lastHeapEmit = 0;
@@ -24,13 +24,13 @@ static bool _apScanning = false;
 static uint32_t _lastMaxHeap = 0;
 static uint32_t _lastHeap = 0;
 int connectRetries = 0;
-void Network::end() {
+void RTSNetwork::end() {
   SSDP.end();
   mqtt.end();
   sockEmit.end();
   delay(100);
 }
-bool Network::setup() {
+bool RTSNetwork::setup() {
   WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
   WiFi.setSortMethod(WIFI_CONNECT_AP_BY_SIGNAL);
   WiFi.persistent(false);
@@ -48,7 +48,7 @@ bool Network::setup() {
   sockEmit.begin();
   return true;
 }
-conn_types_t Network::preferredConnType() {
+conn_types_t RTSNetwork::preferredConnType() {
   switch(settings.connType) {
     case conn_types_t::wifi:    
       return settings.WIFI.ssid[0] != '\0' ? conn_types_t::wifi : conn_types_t::ap;
@@ -63,7 +63,7 @@ conn_types_t Network::preferredConnType() {
       return settings.connType; 
   }
 }
-void Network::loop() {
+void RTSNetwork::loop() {
   // ORDER OF OPERATIONS:
   // ----------------------------------------------
   // 1. If we are in the middle of a connection process we need to simply bail after the connect method.  The
@@ -154,7 +154,7 @@ void Network::loop() {
   }
   else if(!settings.ssdpBroadcast && SSDP.isStarted) SSDP.end();
 }
-bool Network::changeAP(const uint8_t *bssid, const int32_t channel) {
+bool RTSNetwork::changeAP(const uint8_t *bssid, const int32_t channel) {
   esp_task_wdt_reset(); // Make sure we do not reboot here.
   if(SSDP.isStarted) SSDP.end();
   mqtt.disconnect();
@@ -167,7 +167,7 @@ bool Network::changeAP(const uint8_t *bssid, const int32_t channel) {
   this->connectStart = millis();
   return false;
 }
-void Network::emitSockets() {
+void RTSNetwork::emitSockets() {
   this->emitHeap();
   if(this->needsBroadcast || 
     (this->connType == conn_types_t::wifi && (abs(abs(WiFi.RSSI()) - abs(this->lastRSSI)) > 1 || WiFi.channel() != this->lastChannel))) {
@@ -176,7 +176,7 @@ void Network::emitSockets() {
     this->needsBroadcast = false;
   }
 }
-void Network::emitSockets(uint8_t num) {
+void RTSNetwork::emitSockets(uint8_t num) {
   if(this->connType == conn_types_t::ethernet) {
       JsonSockEvent *json = sockEmit.beginEmit("ethernet");
       json->beginObject();
@@ -220,7 +220,7 @@ void Network::emitSockets(uint8_t num) {
   }
   this->emitHeap(num);
 }
-void Network::setConnected(conn_types_t connType) {
+void RTSNetwork::setConnected(conn_types_t connType) {
   esp_task_wdt_reset();
   this->connType = connType;
   this->connectTime = millis();
@@ -365,7 +365,7 @@ void Network::setConnected(conn_types_t connType) {
   settings.printAvailHeap();
   this->needsBroadcast = true;
 }
-bool Network::connectWired() {
+bool RTSNetwork::connectWired() {
   if(ETH.linkUp()) {
     // If the ethernet link is re-established then we need to shut down wifi.
     if(WiFi.status() == WL_CONNECTED) {
@@ -400,7 +400,11 @@ bool Network::connectWired() {
       ETH.setHostname("ESPSomfy-RTS");
     Serial.print("Set hostname to:");
     Serial.println(ETH.getHostname());
-    if(!ETH.begin(settings.Ethernet.phyAddress, settings.Ethernet.PWRPin, settings.Ethernet.MDCPin, settings.Ethernet.MDIOPin, settings.Ethernet.phyType, settings.Ethernet.CLKMode)) { 
+#if defined(CONFIG_IDF_TARGET_ESP32)
+    if(!ETH.begin(settings.Ethernet.phyAddress, settings.Ethernet.PWRPin, settings.Ethernet.MDCPin, settings.Ethernet.MDIOPin, (eth_phy_type_t)settings.Ethernet.phyType, (eth_clock_mode_t)settings.Ethernet.CLKMode)) { 
+#else
+    if(true) {
+#endif
       Serial.println("Ethernet Begin failed");
       this->ethStarted = false;
       if(settings.connType == conn_types_t::ethernetpref) {
@@ -423,7 +427,7 @@ bool Network::connectWired() {
   this->connectStart = millis();
   return true;
 }
-void Network::updateHostname() {
+void RTSNetwork::updateHostname() {
   if(settings.hostname[0] != '\0' && this->connected()) {
     if(this->connType == conn_types_t::ethernet &&
       strcmp(settings.hostname, ETH.getHostname()) != 0) {
@@ -440,7 +444,7 @@ void Network::updateHostname() {
      }
   }
 }
-bool Network::connectWiFi(const uint8_t *bssid, const int32_t channel) {
+bool RTSNetwork::connectWiFi(const uint8_t *bssid, const int32_t channel) {
   if(this->softAPOpened && WiFi.softAPgetStationNum() > 0) {
     // There is a client connected to the soft AP.  We do not want to close out the connection.  While both the
     // Soft AP and a wifi connection can coexist on ESP32 the performance is abysmal.
@@ -513,7 +517,7 @@ bool Network::connectWiFi(const uint8_t *bssid, const int32_t channel) {
   this->connectStart = millis();
   return true;
 }
-bool Network::connect(conn_types_t ctype) {
+bool RTSNetwork::connect(conn_types_t ctype) {
   esp_task_wdt_reset();
   if(this->connecting()) return true;
   if(this->disconnectTime == 0) this->disconnectTime = millis();
@@ -538,7 +542,7 @@ bool Network::connect(conn_types_t ctype) {
   
   return true;
 }
-uint32_t Network::getChipId() {
+uint32_t RTSNetwork::getChipId() {
   uint32_t chipId = 0;
   uint64_t mac = ESP.getEfuseMac();
   for(int i=0; i<17; i=i+8) {
@@ -546,7 +550,7 @@ uint32_t Network::getChipId() {
   }
   return chipId;
 }
-bool Network::getStrongestAP(const char *ssid, uint8_t *bssid, int32_t *channel) {
+bool RTSNetwork::getStrongestAP(const char *ssid, uint8_t *bssid, int32_t *channel) {
   // The new AP must be at least 10dbm greater.
   int32_t strength = this->connected() ? WiFi.RSSI() + 10 : -127;
   int32_t chan = -1;
@@ -567,7 +571,7 @@ bool Network::getStrongestAP(const char *ssid, uint8_t *bssid, int32_t *channel)
   WiFi.scanDelete();
   return chan > 0;
 }
-bool Network::openSoftAP() {
+bool RTSNetwork::openSoftAP() {
   if(this->softAPOpened || this->openingSoftAP) return true;
   if(this->connected()) WiFi.disconnect(false);
   this->openingSoftAP = true;
@@ -578,7 +582,7 @@ bool Network::openSoftAP() {
   delay(200);
   return true;
 }
-bool Network::connected() {
+bool RTSNetwork::connected() {
   if(this->connecting()) return false;
   else if(this->connType == conn_types_t::unset) return false;
   else if(this->connType == conn_types_t::wifi) return WiFi.status() == WL_CONNECTED;
@@ -586,12 +590,12 @@ bool Network::connected() {
   else return this->connType != conn_types_t::unset;
   return false;
 }
-bool Network::connecting() {
+bool RTSNetwork::connecting() {
   if(this->_connecting && millis() > this->connectStart + CONNECT_TIMEOUT) this->_connecting = false; 
   return this->_connecting; 
 }
-void Network::clearConnecting() { this->_connecting = false; }
-void Network::networkEvent(WiFiEvent_t event) {
+void RTSNetwork::clearConnecting() { this->_connecting = false; }
+void RTSNetwork::networkEvent(WiFiEvent_t event) {
   switch(event) {
     case ARDUINO_EVENT_WIFI_READY:               Serial.println("(evt) WiFi interface ready"); break;
     case ARDUINO_EVENT_WIFI_SCAN_DONE:           
@@ -670,7 +674,7 @@ void Network::networkEvent(WiFiEvent_t event) {
       break;
   }
 }
-void Network::emitHeap(uint8_t num) {
+void RTSNetwork::emitHeap(uint8_t num) {
   bool bEmit = false;
   bool bTimeEmit = millis() - _lastHeapEmit > 15000;
   bool bRoomEmit = false;
