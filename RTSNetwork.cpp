@@ -181,7 +181,7 @@ void RTSNetwork::emitSockets(uint8_t num) {
       JsonSockEvent *json = sockEmit.beginEmit("ethernet");
       json->beginObject();
       json->addElem("connected", this->connected());
-      json->addElem("speed", ETH.linkSpeed());
+      json->addElem("speed", (uint32_t)ETH.linkSpeed());
       json->addElem("fullduplex", ETH.fullDuplex());
       json->endObject();
       sockEmit.endEmit(num);
@@ -288,7 +288,7 @@ void RTSNetwork::setConnected(conn_types_t connType) {
       JsonSockEvent *json = sockEmit.beginEmit("ethernet");
       json->beginObject();
       json->addElem("connected", this->connected());
-      json->addElem("speed", ETH.linkSpeed());
+      json->addElem("speed", (uint32_t)ETH.linkSpeed());
       json->addElem("fullduplex", ETH.fullDuplex());
       json->endObject();
       sockEmit.endEmit();
@@ -401,7 +401,7 @@ bool RTSNetwork::connectWired() {
     Serial.print("Set hostname to:");
     Serial.println(ETH.getHostname());
 #if defined(CONFIG_IDF_TARGET_ESP32)
-    if(!ETH.begin(settings.Ethernet.phyAddress, settings.Ethernet.PWRPin, settings.Ethernet.MDCPin, settings.Ethernet.MDIOPin, (eth_phy_type_t)settings.Ethernet.phyType, (eth_clock_mode_t)settings.Ethernet.CLKMode)) { 
+    if(!ETH.begin((eth_phy_type_t)settings.Ethernet.phyType, settings.Ethernet.phyAddress, settings.Ethernet.MDCPin, settings.Ethernet.MDIOPin, settings.Ethernet.PWRPin, (eth_clock_mode_t)settings.Ethernet.CLKMode)) { 
 #else
     if(true) {
 #endif
