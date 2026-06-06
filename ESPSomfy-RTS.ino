@@ -9,6 +9,7 @@
 #include "Somfy.h"
 #include "MQTT.h"
 #include "GitOTA.h"
+#include "MatterHandler.h"
 
 ConfigSettings settings;
 Web webServer;
@@ -36,14 +37,20 @@ void setup() {
   delay(1000);
   net.setup();  
   somfy.begin();
+
+#if defined(CONFIG_IDF_TARGET_ESP32C6) || defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32C3)
+  matterHandler.begin();
+#endif
   //git.checkForUpdate();
   esp_task_wdt_config_t wdt_config = {
     .timeout_ms = 7000,
     .idle_core_mask = (1 << portNUM_PROCESSORS) - 1, // Bitmask of all cores
     .trigger_panic = true
   };
-  esp_task_wdt_init(&wdt_config); //enable panic so ESP32 restarts
-  esp_task_wdt_add(NULL); //add current thread to WDT watch
+  if (esp_task_wdt_reconfigure(&wdt_config) != ESP_OK) {
+    esp_task_wdt_init(&wdt_config); // enable panic so ESP32 restarts
+  }
+  esp_task_wdt_add(NULL); // add current thread to WDT watch
 
 }
 
@@ -65,6 +72,10 @@ void loop() {
   timing = millis();
   esp_task_wdt_reset();
   somfy.loop();
+
+#if defined(CONFIG_IDF_TARGET_ESP32C6) || defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32C3)
+  matterHandler.loop();
+#endif
   if(millis() - timing > 100) Serial.printf("Timing Somfy: %ldms\n", millis() - timing);
   timing = millis();
   esp_task_wdt_reset();
