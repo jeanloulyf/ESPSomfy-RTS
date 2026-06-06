@@ -224,11 +224,12 @@ void Web::handleStreamFile(WebServer &server, const char *filename, const char *
     Serial.print("Error opening");
     Serial.println(filename);
     server.send(500, _encoding_text, "Error opening file");
+    return; // ADDED: Prevent falling through if file failed to open
   }
-  esp_task_wdt_delete(NULL);
+  //esp_task_wdt_delete(NULL);
   server.streamFile(file, encoding);
   file.close();
-  esp_task_wdt_add(NULL);
+  //esp_task_wdt_add(NULL);
   esp_task_wdt_reset();
 }
 void Web::handleController(WebServer &server) {
@@ -2170,10 +2171,10 @@ void Web::begin() {
     esp_task_wdt_reset();
     
     if(server.method() == HTTP_OPTIONS) { server.send(200, "OK"); return; }
-    esp_task_wdt_delete(NULL);
+    //esp_task_wdt_delete(NULL);
     if(net.softAPOpened) WiFi.disconnect(false);
     int n = WiFi.scanNetworks(false, true);
-    esp_task_wdt_add(NULL);
+    //esp_task_wdt_add(NULL);
     
     Serial.print("Scanned ");
     Serial.print(n);

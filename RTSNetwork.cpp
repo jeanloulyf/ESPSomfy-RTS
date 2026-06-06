@@ -555,10 +555,10 @@ bool RTSNetwork::getStrongestAP(const char *ssid, uint8_t *bssid, int32_t *chann
   int32_t strength = this->connected() ? WiFi.RSSI() + 10 : -127;
   int32_t chan = -1;
   memset(bssid, 0x00, 6);
-  esp_task_wdt_delete(NULL);
+  //esp_task_wdt_delete(NULL);
   int16_t n = WiFi.scanComplete();
   //int16_t n = this->connected() ? WiFi.scanComplete() : WiFi.scanNetworks(false, false, false, 300, 0, ssid);
-  esp_task_wdt_add(NULL);
+  //esp_task_wdt_add(NULL);
   for(int16_t i = 0; i < n; i++) {
     if(WiFi.SSID(i).compareTo(ssid) == 0) {
       if(WiFi.RSSI(i) > strength) { 
