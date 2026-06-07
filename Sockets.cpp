@@ -111,8 +111,11 @@ void SocketEmitter::initClients() {
         Serial.printf("Initializing Socket Client %u\n", num);
         esp_task_wdt_reset();
         settings.emitSockets(num);
+        esp_task_wdt_reset();
         somfy.emitState(num);
+        esp_task_wdt_reset();
         git.emitUpdateCheck(num);
+        esp_task_wdt_reset();
         net.emitSockets(num);
         esp_task_wdt_reset();
       }
