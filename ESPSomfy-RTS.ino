@@ -33,7 +33,8 @@ void setup() {
   delay(10);
   Serial.println();
   webServer.startup();
-  webServer.begin();
+    esp_task_wdt_add(NULL); // Add the current task to the WDT watch
+    webServer.begin();
   delay(1000);
   net.setup();  
   somfy.begin();
@@ -43,15 +44,15 @@ void setup() {
 #endif
   //git.checkForUpdate();
   esp_task_wdt_config_t wdt_config = {
-    .timeout_ms = 7000,
+    .timeout_ms = 15000, // Increased timeout to prevent crashes on large operations
     .idle_core_mask = (1 << portNUM_PROCESSORS) - 1, // Bitmask of all cores
     .trigger_panic = true
   };
   if (esp_task_wdt_reconfigure(&wdt_config) != ESP_OK) {
     esp_task_wdt_init(&wdt_config); // enable panic so ESP32 restarts
   }
-  esp_task_wdt_add(NULL); // add current thread to WDT watch
-
+  
+  // esp_task_wdt_add is intentionally omitted here as it's done earlier to protect all tasks
 }
 
 void loop() {

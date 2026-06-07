@@ -439,6 +439,7 @@ void Web::handleRepeatCommand(WebServer& server) {
         if (obj.containsKey("repeat")) repeat = obj["repeat"].as<uint8_t>();
       }
     }
+    
     //DynamicJsonDocument sdoc(512);
     //JsonObject sobj = sdoc.to<JsonObject>();
     if(shadeId != 255) {
