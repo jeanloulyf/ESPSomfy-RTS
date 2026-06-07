@@ -224,12 +224,25 @@ void Web::handleStreamFile(WebServer &server, const char *filename, const char *
     Serial.print("Error opening");
     Serial.println(filename);
     server.send(500, _encoding_text, "Error opening file");
-    return; // ADDED: Prevent falling through if file failed to open
+    return;
   }
-  //esp_task_wdt_delete(NULL);
-  server.streamFile(file, encoding);
+  
+  // Create a buffer for faster reading over network
+  size_t size = file.size();
+  server.setContentLength(size);
+  server.send(200, encoding, ""); // Send HTTP headers first
+  
+  uint8_t buffer[1024]; // 1KB chunks
+  size_t bytesRead;
+  while(file.available()) {
+    esp_task_wdt_reset(); // Feed WDT inside the loop!
+    bytesRead = file.read(buffer, sizeof(buffer));
+    if(bytesRead > 0) {
+      server.client().write(buffer, bytesRead);
+    }
+  }
+  
   file.close();
-  //esp_task_wdt_add(NULL);
   esp_task_wdt_reset();
 }
 void Web::handleController(WebServer &server) {
