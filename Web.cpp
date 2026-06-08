@@ -15,6 +15,10 @@
 #include "GitOTA.h"
 #include "RTSNetwork.h"
 
+#if defined(CONFIG_IDF_TARGET_ESP32C6) || defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32C3)
+#include <Matter.h>
+#endif
+
 extern ConfigSettings settings;
 extern SSDPClass SSDP;
 extern rebootDelay_t rebootDelay;
@@ -2180,6 +2184,21 @@ void Web::begin() {
       }
       esp_task_wdt_reset();
     });
+  server.on("/matter", []() {
+    webServer.sendCORSHeaders(server);
+    if(server.method() == HTTP_OPTIONS) { server.send(200, "OK"); return; }
+#if defined(CONFIG_IDF_TARGET_ESP32C6) || defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32C3)
+    String html = "<html><body style='font-family:sans-serif;padding:20px;'>";
+    html += "<h2>Matter Pairing Information</h2>";
+    html += "<p><strong>Manual Pairing Code:</strong> " + Matter.getManualPairingCode() + "</p>";
+    html += "<p><strong>Onboarding Payload:</strong> " + Matter.getOnboardingPayload() + "</p>";
+    html += "</body></html>";
+    server.send(200, "text/html", html);
+#else
+    server.send(500, "text/html", "Matter is not supported on this board type.");
+#endif
+  });
+  
   server.on("/scanaps", []() {
     webServer.sendCORSHeaders(server);
     esp_task_wdt_reset();
